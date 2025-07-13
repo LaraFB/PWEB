@@ -1,0 +1,93 @@
+﻿@page "/users/editar/{id}"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
+@using GestaoLojaTP.Data
+@inject ApplicationDbContext DbContext
+@inject UserManager<ApplicationUser> UserManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Editar Utilizador</PageTitle>
+
+<h1>Editar Utilizador</h1>
+
+@if (user == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <EditForm Model="user" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="nome" class="form-label">Nome:</label>
+            <InputText id="nome" @bind-Value="user.Nome" class="form-control" />
+            <ValidationMessage For="() => user.Nome" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="telefone" class="form-label">Telefone:</label>
+            <InputText id="telefone" @bind-Value="user.PhoneNumber" class="form-control" />
+            @if (phoneNumberError)
+            {
+                <div class="text-danger">O número de telefone deve ter no máximo 9 dígitos.</div>
+            }
+            <ValidationMessage For="() => user.PhoneNumber" class="text-danger" />
+        </div>
+
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="/users" class="btn btn-secondary">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; }
+
+    private ApplicationUser user;
+    private bool phoneNumberError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != null)
+        {
+            user = await UserManager.FindByIdAsync(Id);
+        }
+
+        if (user == null)
+        {
+            NavigationManager.NavigateTo("/users");
+            return;
+        }
+
+    }
+
+    private async Task HandleSubmit()
+    {
+        phoneNumberError = false;
+        if (string.IsNullOrEmpty(user.PhoneNumber) || user.PhoneNumber.Length > 9)
+        {
+            phoneNumberError = true;
+            return;
+        }
+
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo("/users");
+        }
+        else
+        {
+            foreach (var error in result.Errors)
+            {
+                Console.WriteLine(error.Description);
+            }
+
+        }
+    }
+}

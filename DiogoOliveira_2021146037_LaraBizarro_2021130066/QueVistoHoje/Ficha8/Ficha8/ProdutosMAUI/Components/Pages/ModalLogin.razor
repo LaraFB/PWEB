@@ -1,0 +1,106 @@
+﻿@page "/modalogin"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RCLApi.DTO
+@using RCLApi.Services
+
+@inject NavigationManager NavigationManager
+
+@if (string.IsNullOrEmpty(userName)){
+
+    <div id="myModal" class="modal" style="display:@(showModal ? "block" : "none")">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <h1 style="font-size: 20px;">Login de Utilizador  <span class="close" @onclick="ToggleModal">×</span></h1>
+
+            <EditForm method="post" Model="loginModel" OnValidSubmit="LoginUser"
+                      FormName="login" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <label for="mail" class="form-label">Email:</label>
+                <InputText id="mail" @bind-Value="loginModel.EMail" class="form-control" />
+                <ValidationMessage For="() => loginModel.EMail" class="text-danger" />
+
+                <label for="password" class="form-label">Password:</label>
+                <InputText id="password" type=password @bind-Value="loginModel.Password"
+                           class="form-control" />
+                <ValidationMessage For="() => loginModel.Password" class="text-danger" />
+
+                <button type="submit" class="btn btn-primary" style="margin-top:10px;">Login</button>
+                <button type="button" class="btn btn-outline-secondary" style="border: none;" @onclick="ToggleModal">
+                    <img title="Recuar" src="/images/backicon.png" style="filter: invert(25%) sepia(80%) saturate(1200%) hue-rotate(100deg);height:30px;margin-top:10px;" />
+                </button>
+            </EditForm>
+        </div>
+    </div>
+}
+else
+{
+    <div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <h3>Bem-vindo, @userName</h3>
+    </div>
+}
+
+@code {
+    private bool showModal = true;
+    private string userName = string.Empty;
+    private LoginModel loginModel { get; set; } = new();
+    [Inject]
+    public IApiServices? _apiServices { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthenticationStatus();
+    }
+
+    private async Task CheckAuthenticationStatus()
+    {
+        var user = await _apiServices.GetUtilizadorAtual();
+        if (user.Email != null)
+        {
+            userName = user.Email;
+            showModal = false; 
+        }
+        else
+        {
+            userName = string.Empty;
+            showModal = true;
+        }
+    }
+
+    private void ToggleModal()
+    {
+        showModal = !showModal;
+        if (!showModal)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        try
+        {
+            var response = await _apiServices.Login(loginModel);
+            if (response != null && response.Data)
+            {
+                userName = loginModel.EMail;
+                showModal = false;
+            }
+            else
+            {
+                Console.WriteLine("Login inválido");
+            }
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            Console.WriteLine($"Erro de concorrência na base de dados: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ocorreu um erro inesperado: {ex.Message}");
+        }
+    }
+}

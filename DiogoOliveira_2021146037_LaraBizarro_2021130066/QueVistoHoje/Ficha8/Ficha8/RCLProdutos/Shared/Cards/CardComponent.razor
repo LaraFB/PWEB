@@ -1,0 +1,18 @@
+﻿@using RCLApi.Services
+@using Microsoft.AspNetCore.Components
+@using RCLApi.DTO
+@using RCLProdutos.Shared.Slider
+@using RCLProdutos.Shared.Cards
+@using RCLProdutos.Shared.CardProduto
+
+@inject NavigationManager NavigationManager
+
+@*Removido o background-image e o estilo de posição*@
+<div title="@categoria!.Nome" class="card" style="@marginLeft;">
+    <div>
+        <p>@categoria!.Nome</p>
+    </div>
+    <div class="footer-button">
+        <a href="" @onclick='(() => Navega(categoria))'> <img alt="Pesquisar categoria" src="images/searchredicon50x50.png" width="30" /></a>
+    </div>
+</div>

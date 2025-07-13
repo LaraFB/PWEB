@@ -1,0 +1,152 @@
+﻿@page "/carrinho"
+@using RCLApi.DTO
+@using RCLApi.Services
+
+<h3>Carrinho na Web</h3>
+
+@if (carrinho != null && carrinho.ItensCarrinho.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Produto</th>
+                <th>Quantidade</th>
+                <th>Preço Unitário</th>
+                <th>Valor Total</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in carrinho.ItensCarrinho)
+            {
+                <tr>
+                    <td>@item.nome</td>
+                    <td>@item.quantidade</td>
+                    <td>@item.precoUnidade.ToString("C")</td>
+                    <td>@(item.precoUnidade * item.quantidade)</td>
+                    <td>
+                        <button @onclick="() => RemoverItem(item)" class="btn btn-danger btn-sm">Remover</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <p><strong>Total do Carrinho:</strong> @carrinho.ItensCarrinho.Sum(i => i.precoUnidade * i.quantidade).ToString("C")</p>
+
+    <button @onclick="() => MostrarFormularioFinalizacao()" class="btn btn-success">Finalizar Compra</button>
+
+    @if (mostrarFormulario)
+    {
+        <p></p>
+        <p></p>
+        <div class="form-group">
+            <label>Forma de Pagamento</label>
+            <input type="text" class="form-control" @bind="formaPagamento" />
+        </div>
+        <div class="form-group">
+            <label>Endereço</label>
+            <input type="text" class="form-control" @bind="endereco" />
+        </div>
+        <div class="form-group">
+            <label>Telefone</label>
+            <input type="text" class="form-control" @bind="telefone" />
+        </div>
+        <p></p>
+        <p></p>
+        <button @onclick="FinalizarCompra" class="btn btn-primary">Concluir Pedido</button>
+        @if (!string.IsNullOrEmpty(mensagemErro))
+        {
+            <p class="text-danger">@mensagemErro</p>
+        }
+    }
+}
+else
+{
+    <h2>O carrinho está vazio.</h2>
+}
+
+@if (!string.IsNullOrEmpty(mensagemFinalizacao))
+{
+    <div class="alert alert-success">@mensagemFinalizacao</div>
+}
+else if (!string.IsNullOrEmpty(mensagemErro))
+{
+    <div class="alert alert-danger">@mensagemErro</div>
+}
+
+
+@code {
+    private CarrinhoDTO carrinho = new();
+    private string formaPagamento = string.Empty;
+    private string endereco = string.Empty;
+    private string telefone = string.Empty;
+    private string mensagemErro = string.Empty;
+    private bool mostrarFormulario = false;
+    private string mensagemFinalizacao = string.Empty;
+
+    [Inject]
+    private IApiServices _apiServices { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        carrinho = await _apiServices.GetCarrinho();
+    }
+
+    private async Task RemoverItem(ItemCarrinho item)
+    {
+        carrinho.ItensCarrinho.Remove(item);
+        await _apiServices.SetCarrinho(carrinho);
+    }
+
+    private void MostrarFormularioFinalizacao()
+    {
+        mostrarFormulario = true;
+    }
+
+    private async Task FinalizarCompra()
+    {
+        if (string.IsNullOrWhiteSpace(formaPagamento) ||
+            string.IsNullOrWhiteSpace(endereco) ||
+            string.IsNullOrWhiteSpace(telefone))
+        {
+            mensagemErro = "Por favor, preencha todos os campos.";
+            return;
+        }
+
+        var user = await _apiServices.GetUtilizadorAtual();
+
+        var encomenda = new GerirVenda
+            {
+                UserId = user.Email,
+                FormaPagamento = formaPagamento,
+                Endereco = endereco,
+                Telefone = telefone,
+                status = "Pendente",
+                Itens = new List<VendaProduto>(),
+            };
+
+        foreach (var item in carrinho.ItensCarrinho)
+        {
+            var produto = await _apiServices.GetDetalheProduto(item.ProdutoId);
+            if (produto.Data != null)
+            {
+                encomenda.Itens.Add(new VendaProduto
+                    {
+                        ProdutoId = produto.Data.Id,
+                        Produto = produto.Data,
+                        Quantidade = item.quantidade,
+                    });
+            }
+        }
+
+        await _apiServices.AdicionaItemNoCarrinho(encomenda);
+
+        carrinho.ItensCarrinho.Clear();
+        await _apiServices.SetCarrinho(carrinho);
+        mostrarFormulario = false;
+        mensagemErro = string.Empty;
+
+        mensagemFinalizacao = "Compra realizada, Obrigado pela Confiança no QueVistoHoje";
+    }
+}

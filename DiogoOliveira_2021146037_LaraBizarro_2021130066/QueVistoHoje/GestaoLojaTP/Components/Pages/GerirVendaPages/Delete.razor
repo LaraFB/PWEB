@@ -1,0 +1,88 @@
+﻿@page "/gerirvenda/delete"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLojaTP.Data.Entities
+@inject IDbContextFactory<GestaoLojaTP.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Excluir Encomenda</PageTitle>
+
+<div class="container">
+    <div class="header">
+        <h1>Excluir Encomenda</h1>
+    </div>
+
+    @if (gerirvenda is null)
+    {
+        <p><em>Carregando...</em></p>
+    }
+    else
+    {
+        <div class="delete-card">
+            <div class="delete-header">
+                <p>Tem certeza de que deseja excluir esta encomenda?</p>
+                <span class="status-badge @GetStatusClass(gerirvenda.status)">@gerirvenda.status</span>
+            </div>
+            <div class="delete-body">
+                <dl class="row">
+                    <dt class="col-sm-3">ID do Cliente:</dt>
+                    <dd class="col-sm-9">@gerirvenda.UserId</dd>
+
+                    <dt class="col-sm-3">Data da Encomenda:</dt>
+                    <dd class="col-sm-9">@gerirvenda.DataEncomenda</dd>
+
+                    <dt class="col-sm-3">Forma de Pagamento:</dt>
+                    <dd class="col-sm-9">@gerirvenda.FormaPagamento</dd>
+
+                    <dt class="col-sm-3">Endereço de Entrega:</dt>
+                    <dd class="col-sm-9">@gerirvenda.Endereco</dd>
+
+                    <dt class="col-sm-3">Telefone:</dt>
+                    <dd class="col-sm-9">@gerirvenda.Telefone</dd>
+                </dl>
+            </div>
+            <div class="delete-footer">
+                <EditForm method="post" Model="gerirvenda" OnValidSubmit="DeleteGerirVenda" FormName="delete" Enhance>
+                    <button type="submit" class="btn btn-danger" disabled="@(gerirvenda is null)">Excluir</button>
+                    <a href="/gerirvenda" class="btn btn-secondary">Voltar à Lista</a>
+                </EditForm>
+            </div>
+        </div>
+    }
+</div>
+@code {
+    private GerirVenda? gerirvenda;
+
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        gerirvenda = await context.GerirVendas.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (gerirvenda is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    private async Task DeleteGerirVenda()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.GerirVendas.Remove(gerirvenda!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/gerirvenda");
+    }
+    private string GetStatusClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "pendente" => "pending",
+            "em processamento" => "processing",
+            "completa" => "completed",
+            _ => "pending" // Default caso o status não corresponda a nenhum dos casos
+        };
+    }
+}

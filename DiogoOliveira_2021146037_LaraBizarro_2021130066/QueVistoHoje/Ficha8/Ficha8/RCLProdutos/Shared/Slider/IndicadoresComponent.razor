@@ -1,0 +1,11 @@
+﻿<div class="slider-container">
+    <div class="slider-content">
+        @ChildContent
+    </div>
+    <div class="nav-item-auto-left">
+        <label @onclick="() => Changed(-1)">❮</label>
+    </div>
+    <div class="nav-item-auto-right">
+        <label @onclick="() => Changed(+1)">❯</label>
+    </div>
+</div>

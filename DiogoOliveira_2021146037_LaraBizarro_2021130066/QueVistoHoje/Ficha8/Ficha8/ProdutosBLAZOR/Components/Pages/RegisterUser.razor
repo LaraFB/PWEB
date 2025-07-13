@@ -1,0 +1,120 @@
+﻿@page "/registaruser"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using RCLApi.DTO
+@using RCLApi.Services
+
+@inject NavigationManager NavigationManager
+
+<PageTitle>Criar Registo de Utilizador</PageTitle>
+
+<h1>Criar Registo de Utilizador WEB</h1>
+
+@if (!string.IsNullOrEmpty(userName))
+{
+    <h3>Já fez login, @userName</h3>
+    <p>Não é necessário registar novamente.</p>
+    <a href="/" class="btn btn-primary">Ir para a Página Principal</a>
+}
+else
+{
+    <h4>Utilizador</h4>
+    <hr />
+    @if (!string.IsNullOrEmpty(mensagem))
+    {
+        <div class="alert @(mensagemErro ? "alert-danger" : "alert-success")">
+            @mensagem
+        </div>
+    }
+
+    <EditForm method="post" Model="Utilizador" OnValidSubmit="AddUser"
+              enctype="multipart/form-data" FormName="create" Enhance>
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" />
+
+        <label for="email" class="form-label">Email:</label>
+        <InputText id="email" @bind-Value="Utilizador.Email" class="form-control" />
+        <ValidationMessage For="() => Utilizador.Email" class="text-danger" />
+
+        <label for="password" class="form-label">Password:</label>
+        <InputText type="password" id="password" @bind-Value="Utilizador.Password" class="form-control" />
+        <ValidationMessage For="() => Utilizador.Password" class="text-danger" />
+
+        <button type="submit" class="btn btn-primary">Registar</button>
+        <a href="/" type="button" class="btn btn-outline-secondary" style="border: none;">
+            <img title="Recuar"
+                 src="/images/backicon.png" style="height:30px" />
+        </a>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromForm]
+    public Utilizador Utilizador { get; set; } = new();
+    [Inject]
+    public IApiServices? _apiServices { get; set; }
+    private string mensagem = "";
+    private bool mensagemErro = false;
+    private string userName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthenticationStatus();
+    }
+
+    private async Task CheckAuthenticationStatus()
+    {
+        var user = await _apiServices.GetUtilizadorAtual();
+        if (user.Email != null)
+        {
+            userName = user.Email;
+        }
+        else
+        {
+            userName = string.Empty;
+        }
+    }
+
+    // Método para registar o utilizador
+    public async Task AddUser()
+    {
+        try
+        {
+            var response = await _apiServices.RegistarUtilizador(Utilizador);
+
+            if (response != null && !response.HasError && response.Data == true)
+            {
+                mensagem = "Registo efetuado com sucesso!";
+                mensagemErro = false;
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                mensagem = response?.ErrorMessage ?? "Ocorreu um erro ao efetuar o registo";
+                mensagemErro = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensagem = $"Ocorreu um erro inesperado: {ex.Message}";
+            mensagemErro = true;
+        }
+    }
+
+    bool isValidFileType(string fileName)
+    {
+        string ext = Path.GetExtension(fileName);
+        switch (ext.ToLower())
+        {
+            case ".jpg":
+                return true;
+            case ".jpeg":
+                return true;
+            case ".png":
+                return true;
+            default:
+                return false;
+        }
+    }
+}

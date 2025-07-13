@@ -1,0 +1,120 @@
+﻿@page "/gerirvenda/edit"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLojaTP.Data
+@using GestaoLojaTP.Data.Entities
+@rendermode InteractiveServer
+@inject IDbContextFactory<GestaoLojaTP.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Editar Morada de Entrega</PageTitle>
+
+@if (GerirVenda is null)
+{
+    <p><em>Carregando...</em></p>
+}
+else
+{
+    <div class="container">
+        <div class="header">
+            <h1>Editar Morada de Entrega</h1>
+        </div>
+        <div class="edit-card">
+            <EditForm method="post" Model="GerirVenda" OnValidSubmit="UpdateGerirVenda" FormName="edit" Enhance>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" role="alert" />
+
+                <input type="hidden" name="GerirVenda.Id" value="@GerirVenda.Id" />
+
+                <div class="mb-3">
+                    <label for="endereco" class="form-label">Morada de Entrega:</label>
+                    <InputText id="endereco" @bind-Value="GerirVenda.Endereco" class="form-control" />
+                    <ValidationMessage For="() => GerirVenda.Endereco" class="text-danger" />
+                </div>
+
+                <div class="edit-footer">
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <a href="/gerirvenda" class="btn btn-secondary">Voltar à Lista</a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    private int Id { get; set; }
+
+    [SupplyParameterFromForm]
+    private GerirVenda? GerirVenda { get; set; }
+
+    private ApplicationDbContext? context;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+        GerirVenda = await context.GerirVendas.FirstOrDefaultAsync(m => m.Id == Id);
+
+        if (GerirVenda is null)
+        {
+            NavigationManager.NavigateTo("notfound");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (context != null)
+        {
+            context.Dispose();
+        }
+
+        context = DbFactory.CreateDbContext();
+    }
+
+    private async Task UpdateGerirVenda()
+    {
+
+
+        if (GerirVenda is not null && context is not null)
+        {
+
+            var existingOrder = await context.GerirVendas.FindAsync(GerirVenda.Id);
+            if (existingOrder != null)
+            {
+                existingOrder.Endereco = GerirVenda.Endereco;
+                try
+                {
+                    await context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!GerirVendaExists(GerirVenda.Id))
+                    {
+                        NavigationManager.NavigateTo("notfound");
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                NavigationManager.NavigateTo("/gerirvenda");
+
+            }
+        }
+
+    }
+
+    private bool GerirVendaExists(int id)
+    {
+        if (context is null) return false;
+        return context.GerirVendas.Any(e => e.Id == id);
+    }
+
+    public void Dispose()
+    {
+        context?.Dispose();
+    }
+}

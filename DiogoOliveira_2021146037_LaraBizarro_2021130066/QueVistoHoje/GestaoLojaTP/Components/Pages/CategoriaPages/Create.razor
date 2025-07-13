@@ -1,0 +1,184 @@
+﻿@page "/categoria/create"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using GestaoLojaTP.Data.Entities
+@using GestaoLojaTP.Data
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+<PageTitle>Criar</PageTitle>
+
+<h1>Criar registo!</h1>
+
+<h4>Categoria</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <EditForm method="post" Model="Categoria" OnValidSubmit="AddCategoria" enctype="multipart/form-data" FormName="create" Enhance>
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="mb-3">
+                <div>
+                    @if (Categoria.Imagem != null && Categoria.Imagem.Length > 0)
+                    {
+                        <img title="@Categoria.Nome" id="imagePreview" class="img-thumbnail  mt-2" src="Produtos\@Categoria.Imagem" style="width:100px;">
+                    }
+                    else
+                    {
+                        <img id="imagePreview" class="img-thumbnail mt-2" src="img/noproductstrans.png" style="width:100px;">
+                    }
+                </div>
+                <label for="nome" class="form-label">Nome:</label>
+                <InputText id="nome" @bind-Value="Categoria.Nome" class="form-control" />
+                <ValidationMessage For="() => Categoria.Nome" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="ordem" class="form-label">Ordem na visualização:</label>
+                <InputNumber id="ordem" @bind-Value="Categoria.Ordem" class="form-control" />
+                <ValidationMessage For="() => Categoria.Ordem" class="text-danger" />
+            </div>
+
+            <div class="mb-3">
+                <label for="imageUri" class="form-label">Imagem:</label>
+                <input id="imageUri"
+                       type="file"
+                       name="Categoria.ImageFile"
+                       class="form-control"
+                       accept=".png, .jpg, .jpeg"
+                       onchange="document.getElementById('imagePreview').src = window.URL.createObjectURL(this.files[0])" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Subcategorias:</label>
+                @foreach (var subcategoria in SubCategorias)
+                {
+                    <div class="input-group mb-1">
+                        <InputText @bind-Value="subcategoria.Nome" class="form-control" />
+                        <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveSubCategoria(subcategoria)">Remover</button>
+                    </div>
+                }
+                <div class="input-group mb-1">
+                    <InputText @bind-Value="NewSubCategoryName" class="form-control" placeholder="Nome da subcategoria" />
+                </div>
+            </div>
+
+
+            <button type="submit" class="btn btn-primary"><img title="Gravar" src="/img/saveicon.png" style="height:30px" /></button>
+            <a href="/produtos" type="button" class="btn btn-outline-secondary"><img title="Recuar" src="/img/backicon.png" style="height:30px" /></a>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+
+    private Categorias Categoria { get; set; } = new();
+
+    private List<SubCategoria> SubCategorias { get; set; } = new();
+    private string NewSubCategoryName { get; set; } = "";
+
+
+    private void RemoveSubCategoria(SubCategoria subcategoria)
+    {
+        SubCategorias.Remove(subcategoria);
+    }
+
+
+    // To protect from overposting attacks, see https://aka.ms/RazorPagesCRUD
+    public async Task AddCategoria()
+    {
+        if (!string.IsNullOrWhiteSpace(NewSubCategoryName))
+        {
+            SubCategorias.Add(new SubCategoria { Nome = NewSubCategoryName });
+        }
+
+        using var context = DbFactory.CreateDbContext();
+        context.Categorias.Add(Categoria);
+
+
+        try
+        {
+            if (Categoria.ImageFile != null)
+            {
+                if (Categoria.ImageFile.Length > (200 * 1024))
+                {
+                    NavigationManager.NavigateTo("/produtos/edit");
+                }
+
+                if (!isValidFileType(Categoria.ImageFile.FileName))
+                {
+                    NavigationManager.NavigateTo("/produtos/edit");
+                }
+                else Categoria.UrlImagem = Categoria.ImageFile.FileName;
+
+                using (var dataStream = new MemoryStream())
+                {
+                    await Categoria.ImageFile.CopyToAsync(dataStream);
+                    Categoria.Imagem = dataStream.ToArray();
+                }
+            }
+            Categoria.SubCategorias = SubCategorias;
+
+
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            if (!ProdutoExists(Categoria!.Id))
+            {
+                NavigationManager.NavigateTo("notfound");
+            }
+            else
+            {
+                throw;
+            }
+        }
+
+        NavigationManager.NavigateTo("/categoria");
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+    }
+
+    bool isValidFileType(string fileName)
+    {
+        string ext = Path.GetExtension(fileName);
+        switch (ext.ToLower())
+        {
+            case ".jpg":
+                return true;
+            case ".jpeg":
+                return true;
+            case ".png":
+                return true;
+            default:
+                return false;
+        }
+    }
+    bool isValidFileType(IFormFile file)
+    {
+        string ext = Path.GetExtension(file.Name);
+        switch (ext.ToLower())
+        {
+            case ".jpg":
+                return true;
+            case ".jpeg":
+                return true;
+            case ".png":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool ProdutoExists(int id)
+    {
+        using var context = DbFactory.CreateDbContext();
+        return context.Produtos.Any(e => e.Id == id);
+    }
+}

@@ -1,0 +1,123 @@
+﻿@page "/utilizadores/editar/{UserId}"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
+@using GestaoLojaTP.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject NavigationManager NavigationManager
+@inject GestaoLojaTP.Data.ApplicationDbContext Context
+
+
+<h1>Editar Utilizador</h1>
+
+@if (user == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else
+{
+    <EditForm Model="user" OnValidSubmit="UpdateUser" enctype="multipart/form-data" FormName="edit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <div class="form-check">
+                <InputCheckbox @bind-Value="user.EmailConfirmed" class="form-check-input" id="emailConfirmado" />
+                <label class="form-check-label" for="emailConfirmado">Email Confirmado</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Cargos:</label>
+
+            <div class="form-check">
+                <InputCheckbox @bind-Value="IsAdmin" class="form-check-input" id="admin" />
+                <label class="form-check-label" for="admin">Administrador</label>
+            </div>
+
+            <div class="form-check">
+                <InputCheckbox @bind-Value="IsGestor" class="form-check-input" id="gestor" />
+                <label class="form-check-label" for="gestor">Gestor</label>
+            </div>
+
+            <div class="form-check">
+                <InputCheckbox @bind-Value="IsCliente" class="form-check-input" id="cliente" />
+                <label class="form-check-label" for="cliente">Cliente</label>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a href="@($"/utilizadores")" class="btn btn-secondary">Cancelar</a>
+    </EditForm>
+
+}
+
+@code {
+    [Parameter]
+    public string UserId { get; set; }
+
+    private ApplicationUser user;
+    private bool IsAdmin { get; set; }
+    private bool IsGestor { get; set; }
+    private bool IsCliente { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId != null)
+        {
+            user = await UserManager.FindByIdAsync(UserId);
+        }
+        await LoadUserRoles();
+    }
+
+    private async Task LoadUserRoles()
+    {
+        if (user != null)
+        {
+            var userRoles = await UserManager.GetRolesAsync(user);
+            IsAdmin = userRoles.Contains("Admin");
+            IsGestor = userRoles.Contains("Gestor");
+            IsCliente = userRoles.Contains("Cliente");
+        }
+    }
+    private async Task UpdateUser()
+    {
+        if (user != null)
+        {
+            var currentRoles = await UserManager.GetRolesAsync(user);
+
+            if (user != null)
+            {
+                if (IsAdmin)
+                {
+                    await UserManager.AddToRoleAsync(user, "Admin");
+                }
+                else
+                    await UserManager.RemoveFromRoleAsync(user, "Admin");
+
+
+                if (IsGestor)
+                {
+                    await UserManager.AddToRoleAsync(user, "Gestor");
+                }
+                else
+                    await UserManager.RemoveFromRoleAsync(user, "Gestor");
+
+                if (IsCliente)
+                {
+                    await UserManager.AddToRoleAsync(user, "Cliente");
+
+                }
+                else
+                    await UserManager.RemoveFromRoleAsync(user, "Cliente");
+
+                await UserManager.UpdateAsync(user);
+            }
+
+            NavigationManager.NavigateTo("/utilizadores");
+        }
+    }
+}

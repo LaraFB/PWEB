@@ -1,0 +1,133 @@
+﻿@page "/subcategorias"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+
+@using GestaoLojaTP.Data.Entities
+@using GestaoLojaTP.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@rendermode InteractiveServer
+@inject ApplicationDbContext DbContext
+@inject IJSRuntime JSRuntime
+
+<div class="main-container">
+    <div class="content">
+        <h2 class="page-title">Gerir Subcategorias dos Produtos</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Imagem</th>
+                    <th>Nome do Produto</th>
+                    <th>Categoria</th>
+                    <th>Subcategoria</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Produtos != null)
+                {
+                    @foreach (var produto in Produtos)
+                    {
+                        <tr>
+                            <td>
+                                @if (produto.Imagem != null)
+                                {
+                                    string base64String = Convert.ToBase64String(produto.Imagem);
+                                    <img src="@($"data:image/png;base64,{base64String}")" alt="@produto.Nome" width="50" />
+                                }
+                                else
+                                {
+                                    <img src="@produto.UrlImagem" alt="@produto.Nome" width="50" />
+                                }
+                            </td>
+                            <td>@produto.Nome</td>
+                            <td>@produto.categoria?.Nome</td>
+                            <td>
+                                <select @bind="produto.SubCategoriaId" class="subcategory-select">
+                                    <option value="0">Sem Subcategoria</option>
+                                    @if (SubCategorias != null)
+                                    {
+                                        @foreach (var subcategoria in SubCategorias.Where(x => x.CategoriaId == produto.CategoriaId))
+                                        {
+                                            <option value="@subcategoria.Id">@subcategoria.Nome</option>
+                                        }
+                                    }
+                                </select>
+                            </td>
+                            <td>
+                                <button class="btn btn-success" @onclick="@(() => SaveSubcategory(produto))">@(produto.SubCategoriaId == 0 ? "Salvar" : "Guardado")</button>
+                                @if (produto.SubCategoriaId != 0)
+                                {
+                                    <button class="btn btn-danger" @onclick="@(() => RemoveSubcategory(produto))">Remover</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<Produtos>? Produtos { get; set; }
+    private List<SubCategoria>? SubCategorias { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            Produtos = await DbContext.Produtos
+                .Include(p => p.categoria)
+                 .ToListAsync();
+
+            SubCategorias = await DbContext.SubCategorias
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+    }
+
+    private async Task SaveSubcategory(Produtos produto)
+    {
+ 
+        if (produto.SubCategoriaId == 0)
+        {
+            produto.SubCategoriaId = 0;
+        }
+        else
+        {
+            var productToUpdate = await DbContext.Produtos.FindAsync(produto.Id);
+            if (productToUpdate != null)
+            {
+                productToUpdate.SubCategoriaId = produto.SubCategoriaId;
+                await DbContext.SaveChangesAsync();
+            }
+        }
+        await LoadData();
+
+        StateHasChanged();
+    }
+
+    private async Task RemoveSubcategory(Produtos produto)
+    {
+        var productToUpdate = await DbContext.Produtos.FindAsync(produto.Id);
+        if (productToUpdate != null)
+        {
+            productToUpdate.SubCategoriaId = 0;
+            await DbContext.SaveChangesAsync();
+        }
+        await LoadData();
+
+        StateHasChanged();
+
+    }
+
+}

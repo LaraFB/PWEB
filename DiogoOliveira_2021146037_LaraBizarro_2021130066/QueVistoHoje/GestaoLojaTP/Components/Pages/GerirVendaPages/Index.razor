@@ -1,0 +1,62 @@
+﻿@page "/gerirvenda"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.QuickGrid
+@using GestaoLojaTP.Data.Entities
+@using GestaoLojaTP.Data
+@implements IAsyncDisposable
+@inject IDbContextFactory<GestaoLojaTP.Data.ApplicationDbContext> DbFactory
+
+<PageTitle>Listagem de Encomendas</PageTitle>
+
+<div class="container">
+    <div class="header">
+        <h1>Listagem de Encomendas</h1>
+        <a href="gerirvenda/create" class="btn-new-encomenda">Nova Encomenda</a>
+    </div>
+    <div class="table-container">
+        <QuickGrid Class="table custom-table" Items="context.GerirVendas">
+            <PropertyColumn Property="gerirvenda => gerirvenda.UserId" Title="Email do Cliente" />
+            <PropertyColumn Property="gerirvenda => gerirvenda.status" Title="Status" />
+            <PropertyColumn Property="gerirvenda => gerirvenda.DataEncomenda" Title="Data" />
+            <PropertyColumn Property="gerirvenda => gerirvenda.FormaPagamento" Title="Forma Pagamento" />
+            <PropertyColumn Property="gerirvenda => gerirvenda.Endereco" Title="Endereço de Entrega" />
+            <PropertyColumn Property="gerirvenda => gerirvenda.Telefone" Title="Contacto" />
+            <PropertyColumn Property="gerirvenda => gerirvenda.TotaldaEncomenda" Title="Total" Format="C2" />
+            <TemplateColumn Title="Ações" Context="gerirvenda">
+                <div class="actions-container">
+                    <a href="@($"gerirvenda/edit?id={gerirvenda.Id}")">
+                        <img title="Editar" src="/img/editicon.png" style="height:30px" />
+                        <i class="oi oi-pencil"></i>
+                    </a>
+                    <a href="@($"gerirvenda/details?id={gerirvenda.Id}")">
+                        <img title="Detalhes" src="/img/detailsicon.png" style="height:30px" />
+                        <i class="oi oi-document"></i>
+                    </a>
+                    <a href="@($"gerirvenda/delete?id={gerirvenda.Id}")">
+                        <img title="Apagar" src="/img/deleteicon.png" style="height:30px" />
+                        <i class="oi oi-trash"></i>
+                    </a>
+                </div>
+            </TemplateColumn>
+        </QuickGrid>
+    </div>
+</div>
+@*<a title="Editar" href="@($"modoentregas/edit?id={modoentrega.Id}")"><img title="Editar" src="/img/editicon.png" style="height:30px" /></a> |
+        <a title="Detalhes" href="@($"modoentregas/details?id={modoentrega.Id}")"><img title="Detalhes" src="/img/detailsicon.png" style="height:30px" /></a> |
+        <a title="Apagar" href="@($"modoentregas/delete?id={modoentrega.Id}")"><img title="Apagar" src="/img/deleteicon.png" style="height:30px" /></a>*@
+
+
+@code {
+    private ApplicationDbContext context = default!;
+
+    protected override void OnInitialized()
+    {
+        context = DbFactory.CreateDbContext();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

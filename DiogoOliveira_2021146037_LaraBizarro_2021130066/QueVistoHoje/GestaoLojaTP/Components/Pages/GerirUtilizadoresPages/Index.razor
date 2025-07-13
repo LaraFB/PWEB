@@ -1,0 +1,98 @@
+﻿@page "/users"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using GestaoLojaTP.Data
+@inject ApplicationDbContext DbContext
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject NavigationManager NavigationManager
+
+<h1>Gestão de Utilizadores</h1>
+
+@if (users == null)
+{
+    <p><em>A carregar...</em></p>
+}
+else if (users.Count == 0)
+{
+    <p><em>Não existem utilizadores registados.</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nome de utilizador</th>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Contacto</th>
+                <th>Roles</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.UserName</td>
+                    <td>@user.Nome</td>
+                    <td>@user.Email</td>
+                    <td>@user.PhoneNumber</td>
+                    <td>
+                        @if (userRoles.ContainsKey(user.Id))
+                        {
+                            @foreach (var role in userRoles[user.Id])
+                            {
+                                @if (role == "Cliente")
+                                {
+                                    <span class="badge bg-warning text-dark">Cliente</span>
+                                }
+                                else if (role == "Gestor")
+                                {
+                                    <span class="badge bg-success">Gestor</span>
+                                }
+                                else if (role == "Admin")
+                                {
+                                    <span class="badge bg-primary">Administrador</span>
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <em>Sem Roles</em>
+                        }
+                    </td>
+                    <td>
+                        <a title="Editar" href="@($"/users/editar/{user.Id}")" class="btn btn-sm btn-primary">Editar</a>
+                        <a title="Apagar" href="@($"/users/delete/{user.Id}")" class="btn btn-sm btn-danger">Apagar</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+
+@code {
+    private List<ApplicationUser> users;
+    private Dictionary<string, List<string>> userRoles = new Dictionary<string, List<string>>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        users = await UserManager.Users.ToListAsync();
+        userRoles.Clear();
+        foreach (var user in users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRoles[user.Id] = roles.ToList();
+        }
+    }
+}

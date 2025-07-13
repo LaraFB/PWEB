@@ -1,0 +1,190 @@
+﻿@page "/gerirvenda/create"
+@attribute [Authorize(Roles = "Admin, Gestor")]
+@using Microsoft.AspNetCore.Authorization
+@using GestaoLojaTP.Data
+@using Microsoft.EntityFrameworkCore
+@using GestaoLojaTP.Data.Entities
+@using Microsoft.AspNetCore.Identity
+@using System.ComponentModel.DataAnnotations
+@inject IDbContextFactory<GestaoLojaTP.Data.ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> UserManager
+@rendermode InteractiveServer
+
+<PageTitle>Create Encomenda</PageTitle>
+
+<div class="container">
+    <div class="header">
+        <h1>Criar Nova Encomenda</h1>
+    </div>
+    <EditForm method="post" Model="GerirVenda" OnValidSubmit="AddGerirVenda" FormName="create" Enhance>
+        <DataAnnotationsValidator />
+        <ValidationSummary class="text-danger" role="alert" />
+
+        <div class="mb-3">
+            <label for="cliente" class="form-label">Cliente:</label>
+            <InputSelect id="cliente" @bind-Value="GerirVenda.UserId" class="form-control">
+                <option value="">Selecionar Cliente</option>
+                @foreach (var user in Users)
+                {
+                    <option value="@user.Email">@user.UserName</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => GerirVenda.UserId" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="dataencomenda" class="form-label">Data da Encomenda:</label>
+            <InputDate id="dataencomenda" @bind-Value="GerirVenda.DataEncomenda" class="form-control" />
+            <ValidationMessage For="() => GerirVenda.DataEncomenda" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="formapagamento" class="form-label">Forma de Pagamento:</label>
+            <InputText id="formapagamento" @bind-Value="GerirVenda.FormaPagamento" class="form-control" />
+            <ValidationMessage For="() => GerirVenda.FormaPagamento" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="endereco" class="form-label">Morada de Entrega:</label>
+            <InputText id="endereco" @bind-Value="GerirVenda.Endereco" class="form-control" />
+            <ValidationMessage For="() => GerirVenda.Endereco" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="telefone" class="form-label">Telefone:</label>
+            <InputText id="telefone" @bind-Value="GerirVenda.Telefone" class="form-control" />
+            <ValidationMessage For="() => GerirVenda.Telefone" class="text-danger" />
+        </div>
+
+
+        <div class="mb-3">
+            <label for="status" class="form-label">status:</label>
+            <InputText id="status" @bind-Value="GerirVenda.status" class="form-control" />
+            <ValidationMessage For="() => GerirVenda.status" class="text-danger" />
+        </div>
+
+        <div class="mb-3">
+            <label for="total" class="form-label">Total:</label>
+            <InputText id="total" @bind-Value="totalDisplay" class="form-control" readonly />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Produtos:</label>
+            <ul class="list-group">
+                @foreach (var produto in Produtos)
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="me-2">
+                                <input type="checkbox" @onchange="(e)=> ToggleProduto(produto.Id,(bool)e.Value)" />
+                                @produto.Nome
+                            </label>
+                            <input type="number" value="@produtoQuantities[produto.Id]"
+                            @oninput="(e) => UpdateQuantity(produto.Id, e.Value)"
+                            class="form-control quantity-input" min="0" />
+
+                        </div>
+                    </li>
+                }@if (Produtos.All(p => produtoQuantities[p.Id] == 0)){
+                    <p class="text-danger">Selecione pelo menos um produto com quantidade maior que zero.</p>
+                }
+            </ul>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Criar Encomenda</button>
+    </EditForm>
+</div>
+
+<div>
+    <a href="/gerirvenda">Voltar à Listagem</a>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private GerirVenda GerirVenda { get; set; } = new(){
+            DataEncomenda = DateTime.Now,
+            FormaPagamento = "",
+            Endereco = "",
+            Telefone = "",
+            status = "Pendente",
+            TotaldaEncomenda = 0
+    };
+    private List<Produtos> Produtos { get; set; } = new();
+    private Dictionary<int, int> produtoQuantities { get; set; } = new Dictionary<int, int>();
+    private List<ApplicationUser> Users { get; set; } = new();
+    private string totalDisplay { get; set; } = "0.00";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Produtos = await context.Produtos.ToListAsync();
+
+        foreach (var produto in Produtos)
+        {
+            produtoQuantities.Add(produto.Id, 0);
+        }
+        Users = await UserManager.Users.ToListAsync();
+        UpdateTotalDisplay(); 
+    }
+
+
+    private async Task AddGerirVenda()
+    {
+        using var context = DbFactory.CreateDbContext();
+        var vendaProdutos = new List<VendaProduto>();
+        //add itens de venda
+        decimal total = 0;
+
+        context.GerirVendas.Add(GerirVenda);
+        await context.SaveChangesAsync();
+
+        foreach (var produto in Produtos)
+        {
+            if (produtoQuantities[produto.Id] > 0){
+                var item = new VendaProduto{
+                    EncomendaId = GerirVenda.Id,
+                    ProdutoId = produto.Id,
+                    Quantidade = produtoQuantities[produto.Id],
+                };
+                context.VendaProdutos.Add(item); //n funciona
+                await context.SaveChangesAsync();
+                total += produto.Preco * produtoQuantities[produto.Id];
+            }
+        }
+        GerirVenda.TotaldaEncomenda = total; 
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/gerirvenda");
+    }
+
+    private void ToggleProduto(int produtoId, bool selected)
+    {
+        if (selected)
+            produtoQuantities[produtoId] = 1; 
+        else
+            produtoQuantities[produtoId] = 0;
+        
+        UpdateTotalDisplay();
+    }
+
+    private void UpdateTotalDisplay()
+    {
+        decimal total = 0;
+        foreach (var produto in Produtos)
+        {
+            total += produtoQuantities[produto.Id] * produto.Preco;
+        }
+
+        totalDisplay = total.ToString("C2");
+        GerirVenda.TotaldaEncomenda = total;
+        StateHasChanged(); // Força a renderização
+    }
+    private void UpdateQuantity(int produtoId, object value) {
+        if (int.TryParse(value?.ToString(), out int quantidade))
+        {
+            produtoQuantities[produtoId] = quantidade;
+            UpdateTotalDisplay();
+        }
+    }
+}

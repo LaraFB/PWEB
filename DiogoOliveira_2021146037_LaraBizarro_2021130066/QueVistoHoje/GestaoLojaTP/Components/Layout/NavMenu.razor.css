@@ -1,0 +1,121 @@
+.logo-span {
+    padding-top: 1rem;
+    color: #0A3D33;
+    font-family: Inter;
+    font-size: 30px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: normal;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+.navbar-toggler {
+    appearance: none;
+    cursor: pointer;
+    width: 3.5rem;
+    height: 2.5rem;
+    color: #F4F3F0;
+    position: absolute;
+    top: 0.5rem;
+    right: 1rem;
+    border: 1px solid rgba(244, 243, 240, 0.1);
+}
+
+.navbar-toggler:checked {
+    background-color: #E7CEAE;
+}
+
+.top-row {
+    padding-top: 0.5rem;
+    height: 3.5rem;
+    background-color: #E7CEAE;
+    text-align: center;
+    top: 2px;
+}
+
+.botton-row {
+    height: 3.5rem;
+    background-color: #0A3D33;
+    color: #F4F3F0;
+}
+
+.botton-row15 {
+    position: absolute;
+    bottom: 1px;
+    background-color: #0A3D33;
+    color: #262626;
+    text-decoration: none;
+    align-content: center;
+    width: 100%;
+    height: 2rem;
+    font-size: 15px;
+    font-style: normal;
+    text-align: center;
+}
+
+.navbar-brand {
+    color: #0A3D33;
+    font-family: Inter;
+    font-size: 30px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: normal;
+    align-content: center;
+}
+
+.nav-item {
+    font-size: 0.9rem;
+    padding-bottom: 0.5rem;
+}
+
+.nav-item:first-of-type {
+    padding-top: 1rem;
+}
+
+.nav-item:last-of-type {
+    padding-bottom: 1rem;
+}
+
+.nav-item ::deep .nav-link {
+    color: #B3C7C2;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    line-height: 3rem;
+    width: 100%;
+}
+
+.nav-item ::deep a.active {
+    background-color: rgba(179, 199, 194, 0.37);
+    color: #F4F3F0;
+}
+
+.nav-item ::deep .nav-link:hover {
+    background-color: rgba(179, 199, 194, 0.1);
+    font-size: larger;
+    color: #F4F3F0;
+}
+
+.nav-scrollable {
+    display: none;
+    background-color: #0A3D33;
+}
+
+.navbar-toggler:checked ~ .nav-scrollable {
+    display: block;
+}
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .nav-scrollable {
+        display: block;
+        height: calc(100vh - 15rem);
+    }
+}

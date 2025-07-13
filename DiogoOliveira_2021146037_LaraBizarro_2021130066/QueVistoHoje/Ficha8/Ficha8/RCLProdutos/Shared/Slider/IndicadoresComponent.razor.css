@@ -1,0 +1,41 @@
+﻿.slider-container {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+.slider-content {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.nav-item-auto-left {
+    position: absolute;
+    z-index: 10;
+    top: 40%;
+    left: 2%;
+}
+
+.nav-item-auto-right {
+    position: absolute;
+    z-index: 10;
+    top: 40%;
+    right: 2%;
+}
+
+    .nav-item-auto-left label, .nav-item-auto-right label {
+        font-size: 2rem;
+        color: white;
+        cursor: pointer;
+    }
+
+.select-slide {
+    width: 8px;
+    height: 8px;
+    border: 2px solid #000;
+    border-radius: 50px;
+    margin: 2px;
+    cursor: pointer;
+    transition: 1s;
+    top: 350px;
+}

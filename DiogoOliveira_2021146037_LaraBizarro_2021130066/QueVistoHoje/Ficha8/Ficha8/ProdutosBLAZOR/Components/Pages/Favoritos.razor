@@ -1,0 +1,72 @@
+﻿@page "/favoritos"
+@using RCLApi.DTO
+@using RCLApi.Services
+
+
+@if (aux != null && aux.Any())
+{
+    <h3>Favoritos</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Imagem</th>
+                <th>Nome do Produto</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var produto in ProdutosFavoritos)
+            {
+                <tr>
+                    <td>
+                        <img style="max-height:100px" title="Imagem Actual: @produto.UrlImagem" id="imagePreview" src="data:image/*;base64,@(Convert.ToBase64String(produto.Imagem))" />
+
+                    </td>
+                    <td>@produto.Nome</td>
+                    <td>
+                        <button class="btn btn-danger" @onclick="() => RemoverProduto(produto.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+}else{
+    <h2>Os favoritos estão vazios. </h2>
+}
+
+
+
+
+@code{
+    private List<ProdutoFavorito> aux = new ();
+    private List<ProdutoDTO> ProdutosFavoritos = new();
+
+    [Inject]
+    private IApiServices _apiServices { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await _apiServices.GetUtilizadorAtual();
+        if(user!=null)
+            aux = await _apiServices.GetFavoritos(user.Email);
+        
+        foreach (var item in aux)
+        {
+            var produto = await _apiServices.GetDetalheProduto(item.ProdutoId);
+            if (produto.Data != null)
+                ProdutosFavoritos.Add(produto.Data);
+            
+        }
+
+    }
+
+	private void RemoverProduto(int id)
+	{
+        var produto = ProdutosFavoritos.FirstOrDefault(p => p.Id == id);
+        if (produto != null)
+        {
+            ProdutosFavoritos.Remove(produto);
+        }
+	}
+}
